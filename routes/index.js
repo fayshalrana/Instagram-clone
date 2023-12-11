@@ -68,16 +68,23 @@ router.get("/like/post/:id", isLoggedIn, async function (req, res) {
 
 // User Register
 router.post("/register", async function (req, res) {
-  var userData = await new userModel({
-    username: req.body.username,
-    name: req.body.name,
-    email: req.body.email,
-  });
-  userModel.register(userData, req.body.password).then(function () {
+  try {
+    var userData = new userModel({
+      username: req.body.username,
+      name: req.body.name,
+      email: req.body.email,
+    });
+
+    await userModel.register(userData, req.body.password);
+
     passport.authenticate("local")(req, res, function () {
       res.redirect("/profile");
     });
-  });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    req.flash("error"); // Set flash message
+    res.redirect("/error");
+  }
 });
 
 //login
@@ -86,6 +93,7 @@ router.post(
   passport.authenticate("local", {
     successRedirect: "/profile",
     failureRedirect: "/",
+    failureFlash: true
   })
 );
 
@@ -101,16 +109,30 @@ router.get("/logout", function (req, res, next) {
 
 // update user profile
 router.post("/update", upload.single("image"), async function (req, res) {
-  var updatedUser = await userModel.findOneAndUpdate(
-    { username: req.session.passport.user },
-    { username: req.body.username, name: req.body.name, bio: req.body.bio },
-    { new: true }
-  );
-  if (req.file) {
-    updatedUser.profileImage = req.file.filename;
+  try {
+    var updateUserName = req.body.username;
+    var updateName = req.body.name;
+    var updateUserBio = req.body.bio;
+
+    if (updateUserName !== "" || updateName !== "" || updateUserBio !== "") {
+      var updatedUser = await userModel.findOneAndUpdate(
+        { username: req.session.passport.user },
+        { username: updateUserName, name: updateName, bio: updateUserBio },
+        { new: true }
+      );
+
+      if (req.file) {
+        updatedUser.profileImage = req.file.filename;
+      }
+
+      await updatedUser.save();
+    }
+
+    res.redirect("/profile");
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).send("Internal Server Error");
   }
-  await updatedUser.save();
-  res.redirect("/profile");
 });
 
 // upload post

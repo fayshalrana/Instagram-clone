@@ -4,7 +4,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const expressSession = require('express-session');
-require('dotenv').config()
+require('dotenv').config();
+const flash = require('connect-flash'); 
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -22,11 +23,11 @@ app.use(expressSession({
   secret: 'anything'
 }))
 
+app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 passport.serializeUser(usersRouter.serializeUser());
 passport.deserializeUser(usersRouter.deserializeUser());
-
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
